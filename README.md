@@ -9,6 +9,10 @@ The Progress field (PR) dynamically updates throughout the attack, ensuring you 
 The plugin adds small, neatly formatted status messages to the bottom of your Pwnagotchi’s screen. These messages display the current SSID (abbreviated for space), the wordlist being used, and the current WPS (Words per Second).
 The UI has been designed to make optimal use of limited screen space, providing you with the most essential information without overwhelming the display.
 You’ll know at a glance which network is being attacked, which wordlist is in use, and how fast the brute force attack is progressing.
+2.5 :) Flask Web Dashboard
+The plugin starts a Flask web server running on port 5000 that displays real-time status updates via a web-based dashboard.
+The dashboard provides an overview of the current attack, including the network SSID, wordlist in use, total handshakes processed, progress, and brute force results.
+Accessible at http://<your-pwnagotchi-ip>:5000, this feature lets you monitor the status of ongoing brute force attempts remotely.
 3. Single-Instance Brute Forcing
 To prevent resource conflicts and ensure maximum stability, BruteForcer only runs one brute force attack at a time. This ensures that each handshake is attacked individually and prevents multiple attacks from overlapping.
 This approach guarantees that your Pwnagotchi operates efficiently, focusing its resources on one task at a time, making it easier to track individual progress and results.
