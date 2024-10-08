@@ -1,3 +1,4 @@
+![Screenshot 2024-10-07 210129](https://github.com/user-attachments/assets/c2b187eb-60da-43ac-b3c9-a4133acf39b1)
 The BruteForcer Plugin is a powerful tool designed for penetration testers, security researchers, and Wi-Fi enthusiasts who want to automate WPA/WPA2 handshake cracking using aircrack-ng. This plugin seamlessly integrates with Pwnagotchi, allowing users to monitor and brute force captured handshakes in real-time, while offering detailed feedback and intuitive UI integration to optimize the process.
 
 🔑 Key Features
