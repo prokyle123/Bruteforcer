@@ -1,90 +1,66 @@
-BruteForce WPA Handshake Plugin for Pwnagotchi (v1.4.1)
-Overview
-The BruteForce WPA Handshake Plugin automates brute-forcing WPA handshakes on your Pwnagotchi. It monitors for handshake files, attempts to crack them using a wordlist, and provides real-time feedback via the Pwnagotchi UI.
+The BruteForcer Plugin is a powerful tool designed for penetration testers, security researchers, and Wi-Fi enthusiasts who want to automate WPA/WPA2 handshake cracking using aircrack-ng. This plugin seamlessly integrates with Pwnagotchi, allowing users to monitor and brute force captured handshakes in real-time, while offering detailed feedback and intuitive UI integration to optimize the process.
 
-What's New in v1.4.1
-Persistent Cracking Progress: Now, the plugin saves cracked network and total file progress, allowing the session to continue even after a restart.
-Announced Status: Added live status announcements at the top of the screen, indicating the current task (e.g., "Processing," "Idle," "Completed").
-UI Enhancements: Redesigned interface to better show brute-forcing progress, results, and statistics.
-Optimized Aircrack-ng Execution: Improved error handling and system resource management. The plugin efficiently manages large wordlists without crashing by delaying tasks and reducing system resource consumption.
-Detailed Logs and Error Reporting: Better logging of errors such as "Resetting EAPOL Handshake decoder state" and improved reporting of brute-force results (Cracked/Failed).
-Improved Handshake Management: Each detected handshake is processed in sequence, and results are saved, preventing multiple tasks from running simultaneously.
-Features
-Automated Handshake Detection: The plugin continuously monitors a specified directory for WPA handshake files and automatically starts the brute-force process when new handshakes are detected.
-Aircrack-ng Integration: Uses aircrack-ng for brute-force attacks, attempting each word in the specified wordlist to crack WPA handshakes.
-Real-Time UI Feedback: Provides live updates in the Pwnagotchi UI, showing the current task (BF: target network, PR: progress, RE: result).
-System Resource Management: Delays between brute-force attempts help manage system resources efficiently, preventing memory exhaustion.
-Detailed Description
-Persistent Progress and Announcement Feature
-The plugin tracks how many handshakes have been processed and how many have been successfully cracked. It saves the state across sessions, ensuring you never lose your progress after rebooting.
+🔑 Key Features
+1. Real-Time Brute Force Progress
+The BruteForcer Plugin provides real-time progress updates directly from aircrack-ng. You’ll see detailed status updates that include the current progress percentage and the words per second (WPS) performance during brute force attacks.
+The Progress field (PR) dynamically updates throughout the attack, ensuring you can monitor how far along the brute force process is, providing greater visibility into long-running wordlist attacks.
+2. Intuitive and Compact UI Integration
+The plugin adds small, neatly formatted status messages to the bottom of your Pwnagotchi’s screen. These messages display the current SSID (abbreviated for space), the wordlist being used, and the current WPS (Words per Second).
+The UI has been designed to make optimal use of limited screen space, providing you with the most essential information without overwhelming the display.
+You’ll know at a glance which network is being attacked, which wordlist is in use, and how fast the brute force attack is progressing.
+3. Single-Instance Brute Forcing
+To prevent resource conflicts and ensure maximum stability, BruteForcer only runs one brute force attack at a time. This ensures that each handshake is attacked individually and prevents multiple attacks from overlapping.
+This approach guarantees that your Pwnagotchi operates efficiently, focusing its resources on one task at a time, making it easier to track individual progress and results.
+4. Automatic Retry on Failures
+The plugin has built-in error handling and automatic retries. If a brute force attack times out or fails (e.g., due to an incomplete handshake), the plugin will automatically retry the attack up to three times.
+This feature is particularly useful when dealing with challenging or incomplete handshakes, ensuring the highest possible success rate without manual intervention.
+5. Detailed Logging and Debugging
+BruteForcer logs every step of the brute force process, from the initial command to the final result, making it easy to review what’s happening under the hood.
+The plugin logs real-time progress, detailed errors, and results from each attack, including whether a password was cracked or the attack failed. This allows for easier troubleshooting and fine-tuning of your approach to specific networks.
+6. Flexible Wordlist Management
+BruteForcer supports multiple wordlists, giving users the flexibility to use their favorite wordlists or cycle through multiple lists during brute force attacks.
+Wordlists can be placed in a designated folder, and the plugin will automatically iterate through them during each attack, maximizing the chances of cracking the handshake.
+You can easily update or swap out wordlists without changing the core configuration.
+7. Optimized Handshake File Handling
+The plugin efficiently monitors your handshake directory, ensuring that each .pcap file is processed and that no handshake is missed.
+It tracks which handshakes have been processed, making sure that files are not brute forced multiple times unnecessarily, while providing clear feedback on how many files have been processed versus how many remain.
+8. WPA/WPA2 Handshake Support
+The BruteForcer Plugin is tailored for WPA/WPA2 security, focusing on capturing and cracking standard WPA handshakes. It supports .pcap files that contain the necessary EAPOL data for cracking WPA/WPA2 networks.
+💡 How It Works
+Monitor Directory for Handshake Files:
 
-Additionally, the plugin uses a single-word status announcement at the top of the screen, indicating what it's doing next: "Idle," "Processing," or "Completed."
+BruteForcer continuously monitors a designated directory for any new .pcap files (handshake captures). Once a new file is detected, the plugin automatically starts processing the file using the provided wordlists.
+Initiate Brute Force Attack:
 
-Aircrack-ng Execution
-The core feature of the plugin is brute-forcing WPA handshakes using aircrack-ng. It takes a handshake file, runs aircrack-ng against it using a user-specified wordlist, and checks whether the password can be cracked.
+The plugin runs aircrack-ng in the background to brute force the WPA/WPA2 handshakes using the selected wordlist(s). You can configure the wordlist folder to contain multiple wordlists, which the plugin will iterate over.
+Real-Time Progress Updates:
 
-Key highlights:
+The plugin displays real-time updates of the brute force attack directly on the Pwnagotchi screen, showing the SSID being attacked, the wordlist in use, the progress percentage, and the WPS. These updates help you stay informed of the current attack’s progress without needing to check logs manually.
+Log Results and Errors:
 
-SSID Limitation: Only the first four characters of the SSID are shown for compact display.
-Customizable Wordlist: Users can set their own wordlist in the configuration file.
-Error Handling: If the handshake file has issues or aircrack-ng runs into problems, the errors are logged for easier debugging.
-Real-Time UI Feedback
-The plugin integrates seamlessly with Pwnagotchi’s UI:
+Once a brute force attack completes (either successfully or unsuccessfully), the results are logged and displayed. The plugin will show whether the password was cracked, or if the attack failed, along with any relevant error messages.
+Handle Incomplete Handshakes:
 
-BF (Brute-Force Target): Shows the SSID (or a portion) of the network being attacked.
-PR (Progress): Displays the percentage progress of the brute-force attack.
-RE (Result): Indicates the outcome—either "Cracked" or "Failed."
-TO (Total): Shows the total number of processed files out of the entire handshake folder.
-System Resource Management
-To avoid crashing or overloading the system, the plugin manages memory efficiently:
+If a handshake file does not contain EAPOL frames or is otherwise incomplete, the plugin skips the file and logs an error, ensuring that processing continues smoothly without manual intervention.
+📋 Requirements
+Pwnagotchi Device: This plugin is designed to run on Pwnagotchi devices with a display (e.g., e-paper, OLED) for real-time status updates.
+Aircrack-ng: aircrack-ng must be installed and properly configured on the device for the plugin to function. The plugin runs aircrack-ng in the background for each brute force attack.
+Captured Handshake Files: The plugin requires WPA/WPA2 handshake .pcap files to perform brute force attacks. These files can be captured using tools like airodump-ng, bettercap, or others.
+Wordlists: A wordlist or multiple wordlists for brute forcing. Place these in the configured wordlist directory, and the plugin will use them during attacks.
+🔧 Installation and Setup
+Install the Plugin:
 
-Delay Between Attempts: Introduced delays between brute-force attempts to reduce system strain.
-Error Recovery: If a handshake fails to process, the plugin will log the error and move to the next task.
-Installation
-Clone the Repository:
+Copy the plugin files to your Pwnagotchi device in the appropriate plugin directory (/usr/local/share/pwnagotchi/custom-plugins/).
+Configure the Plugin:
 
-bash
-Copy code
+Define the directories for your handshake files and wordlists in the plugin configuration. You can also configure the delay between brute force attempts and set your retry limits.
+Start the Plugin:
 
-cd /usr/local/share/pwnagotchi/custom-plugins
-git clone https://github.com/prokyle123/Bruteforcer.git
-Configure the Plugin: Open the Pwnagotchi configuration file:
+Once installed, the plugin will automatically start monitoring for handshake files and will initiate brute force attacks as soon as a new file is detected.
+🎯 Who is This For?
+The BruteForcer Plugin is perfect for security professionals, Wi-Fi enthusiasts, and anyone looking to automate WPA/WPA2 handshake cracking. Whether you’re conducting penetration tests, performing security audits, or just experimenting with Pwnagotchi, this plugin allows you to easily monitor and crack handshakes in a streamlined, efficient way.
 
-bash
-Copy code
-
-sudo nano /etc/pwnagotchi/config.toml
-Add the Bruteforcer plugin under the [main.plugins] section:
-
-toml
-Copy code
-
-[main.plugins.bruteforcer]
-enabled = true
-Adjust Plugin Settings: Optionally, configure your wordlist and handshake directory in /usr/local/share/pwnagotchi/custom-plugins/Bruteforcer.py:
-
-python
-Copy code
-
-self.wordlist = "/home/pi/wordlists/top62.txt"
-self.handshake_dir = "/home/pi/handshakes"
-Restart Pwnagotchi:
-
-bash
-Copy code
-
-sudo systemctl restart pwnagotchi
-
-Usage
-Once installed and enabled, the Bruteforcer plugin will automatically monitor your designated handshake directory and attempt to crack any new handshakes.
-Results of each brute-force attempt are shown in the Pwnagotchi UI and logged.
-You can view detailed logs in real-time by running:
-
-bash
-Copy code
-
-sudo pwnagotchi --debug
-
-Best Practices
-Use Efficient Wordlists: Larger wordlists may cause memory issues on low-powered devices like Pwnagotchi. Test with smaller wordlists first and gradually increase size while monitoring resource usage.
-Monitor Logs: Regularly check logs for errors or failed attempts, which can help you troubleshoot issues with handshakes or wordlist configurations.
+📈 Future Enhancements
+WPA3 Support: Future updates may include support for WPA3 handshakes as tools evolve to handle newer security protocols.
+Graphical Progress: Additional visual enhancements to show graphical representations of brute force progress.
+Advanced Error Handling: More granular error handling and recovery options for edge cases and complex handshake files.
