@@ -37,10 +37,20 @@ class BruteForce(plugins.Plugin):
         self.retry_limit = 3
         self.status_message = ""  # Holds the small status message for display
 
+        # Tracking WPS, elapsed time, progress, and words processed
+        self.wps_data = []  # Track words per second (WPS)
+        self.elapsed_time_data = []  # Track elapsed time per handshake
+        self.progress_data = []  # Track real-time progress percentage
+        self.words_processed = 0  # Total words processed
+        self.words_processed_abbr = ""  # Abbreviated words processed for display
+        self.time_labels = []  # Track timestamps for WPS and Progress
+        self.progress_time_labels = []  # Track time intervals for progress
+        self.handshake_ssids = []  # Track handshake SSIDs for elapsed time
+
         # Set default values for handshake_dir, wordlist_folder, and delay_between_attempts
         self.handshake_dir = "/home/pi/handshakes"
         self.wordlist_folder = "/home/pi/wordlists"
-        self.delay_between_attempts = 10  # Default delay between attempts in seconds
+        self.delay_between_attempts = 5  # Default delay between attempts in seconds
 
         # Flask setup for dashboard
         self.template_folder = '/usr/local/share/pwnagotchi/custom-plugins'
@@ -53,7 +63,7 @@ class BruteForce(plugins.Plugin):
         self.options = options
         self.wordlist_folder = self.options.get("wordlist_folder", "/home/pi/wordlists")
         self.handshake_dir = self.options.get("handshake_dir", "/home/pi/handshakes")
-        self.delay_between_attempts = self.options.get("delay_between_attempts", 10)  # Ensure it's set
+        self.delay_between_attempts = self.options.get("delay_between_attempts", 5)  # Ensure it's set
 
     def on_loaded(self):
         logging.info("[bruteforce] Plugin loaded.")
@@ -73,7 +83,15 @@ class BruteForce(plugins.Plugin):
                                    progress=self.progress,
                                    processed_files=self.processed_files,
                                    total_files=self.total_files,
-                                   cracked_count=self.cracked_count)
+                                   words_processed=self.words_processed,
+                                   # Default to empty lists if variables are None or not available yet
+                                   wps_data=self.words_per_second_data or [],
+                                   time_data=self.time_data or [],
+                                   elapsed_time_data=self.elapsed_time_data or [],
+                                   handshake_data=self.handshake_data or [],
+                                   progress_over_time_data=self.progress_over_time_data or [],
+                                   cracked_count=self.cracked_count or 0,
+                                   failed_count=self.failed_count or 0)
 
         # Start the Flask web server
         self.app.run(host='0.0.0.0', port=5000)
@@ -114,7 +132,6 @@ class BruteForce(plugins.Plugin):
                 ui.set("bruteforce_result", self.result)
                 ui.set("bruteforce_total", f"{min(self.processed_files, self.total_files)}/{self.total_files}")
                 ui.set("bruteforce_cracked", f"{self.cracked_count}/{self.processed_files}")
-                # Update the status message on the UI
                 ui.set("bruteforce_step", self.status_message)  # Small status message
 
     def start_monitoring(self):
@@ -153,9 +170,14 @@ class BruteForce(plugins.Plugin):
             # Start brute-forcing the current pcap file
             self.processed_files_set.add(pcap_file)
 
-            # Extract full SSID and BSSID from the filename
-            ssid = os.path.basename(pcap_file).split("_")[0]  # Take everything before the underscore
-            wordlist = os.path.basename(pcap_file).split("_")[1][:4]  # Abbreviate wordlist for status
+            # Extract SSID and wordlist, validate filename format
+            if "_" in os.path.basename(pcap_file):
+                ssid = os.path.basename(pcap_file).split("_")[0]  # Extract SSID
+                wordlist = os.path.basename(pcap_file).split("_")[1][:4]  # Abbreviate wordlist for status
+                logging.info(f"[bruteforce] Using SSID: {ssid} and wordlist abbreviation: {wordlist}")
+            else:
+                logging.error(f"[bruteforce] Invalid filename format for {pcap_file}")
+                return  # Exit if filename format is invalid
 
             self.update_step_status(f"BF: Start {ssid}")
             
@@ -164,6 +186,9 @@ class BruteForce(plugins.Plugin):
                 os.path.join(self.wordlist_folder, f) for f in os.listdir(self.wordlist_folder)
                 if os.path.isfile(os.path.join(self.wordlist_folder, f))
             ]
+
+            start_time = time.time()  # Start timer for this handshake
+            cracked_keys_file = "/root/cracked_keys.txt"  # Path to store cracked keys
 
             for wordlist in wordlist_files:
                 # Update the status with the current wordlist and abbreviated SSID: "WL: <wordlist> <SSID>"
@@ -199,18 +224,27 @@ class BruteForce(plugins.Plugin):
                             progress = progress_match.group(1)
                             self.progress = str(int(float(progress))) + "%"
                             self.on_ui_update(self.ui)
+                            self.progress_data.append(int(float(progress)))  # Track progress for graph
                         elif "KEY FOUND!" in line:
                             self.result = "Cracked"
                             self.cracked_count += 1
-                            logging.info(f"[bruteforce] Network {ssid} cracked!")
+                            key_match = re.search(r"KEY FOUND! \[ (.+) \]", line)
+                            if key_match:
+                                cracked_key = key_match.group(1)
+                                # Save the cracked key and SSID to a file
+                                with open(cracked_keys_file, 'a') as f:
+                                    f.write(f"SSID: {ssid}, Key: {cracked_key}\n")
+                                logging.info(f"[bruteforce] Network {ssid} cracked! Key: {cracked_key}")
                             break
                         elif "words per second" in line:
                             wps_match = re.search(r"(\d+)\swords per second", line)
                             if wps_match:
                                 wps = wps_match.group(1)
-                                # Update status message with abbreviated SSID, wordlist, and WPS
+                                self.words_processed += int(wps)  # Accumulate total words processed
+                                self.words_processed_abbr = self.abbreviate_number(self.words_processed)  # Abbreviate words processed
                                 self.status_message = f"{ssid[:4]} {wordlist[:4]} {wps}W/s"
                                 self.on_ui_update(self.ui)
+                                self.wps_data.append(int(wps))  # Track WPS data for graph
 
                     stdout, stderr = process.communicate(timeout=600)
 
@@ -239,6 +273,9 @@ class BruteForce(plugins.Plugin):
                     logging.exception(f"[bruteforce] An unexpected error occurred with wordlist {wordlist} and network {ssid}: {e}")
                 finally:
                     self.current_task = None
+                    elapsed_time = time.time() - start_time  # Calculate elapsed time
+                    self.elapsed_time_data.append(elapsed_time)  # Track elapsed time for graph
+
                     # Increment processed files after the command runs, whether successful or not
                     self.processed_files += 1
                     self.update_status("DONE", "100%", self.result)
@@ -257,29 +294,6 @@ class BruteForce(plugins.Plugin):
             with self.ui._lock:
                 self.ui.set("bruteforce_step", message)
             self.on_ui_update(self.ui)
-
-    def handle_bruteforce_output(self, stdout, stderr, returncode, ssid):
-        """
-        Handles the output from the aircrack-ng command.
-
-        Args:
-            stdout (str): Standard output from the command.
-            stderr (str): Standard error from the command.
-            returncode (int): The return code from the command execution.
-            ssid (str): The SSID of the network being attacked.
-        """
-        if stdout:
-            logging.info(f"[bruteforce] aircrack-ng output:\n{stdout}")
-        if stderr:
-            logging.error(f"[bruteforce] aircrack-ng error:\n{stderr}")
-
-        if returncode == 0 and "KEY FOUND!" in stdout:
-            self.result = "Cracked"
-            self.cracked_count += 1  # Increment cracked count when key is found
-            logging.info(f"[bruteforce] Network {ssid} cracked!")
-        else:
-            self.result = "Failed"
-            logging.info(f"[bruteforce] Brute force attack failed for {ssid}.")
 
     def update_status(self, status, progress, result):
         """
@@ -304,6 +318,18 @@ class BruteForce(plugins.Plugin):
         )
         logging.info(f"[bruteforce] Total handshake files: {self.total_files}")
 
+    def abbreviate_number(self, number):
+        """
+        Abbreviates a large number into a human-readable format with suffixes like K, M, B.
+        """
+        if number >= 1_000_000_000:
+            return f"{number / 1_000_000_000:.2f}B"
+        elif number >= 1_000_000:
+            return f"{number / 1_000_000:.2f}M"
+        elif number >= 1_000:
+            return f"{number / 1_000:.2f}K"
+        return str(number)
+
     def save_progress(self):
         """
         Saves the current progress to a JSON file.
@@ -311,7 +337,8 @@ class BruteForce(plugins.Plugin):
         progress_data = {
             'processed_files': self.processed_files,
             'cracked_count': self.cracked_count,
-            'processed_files_list': list(self.processed_files_set)
+            'processed_files_list': list(self.processed_files_set),
+            'words_processed': self.words_processed
         }
         try:
             os.makedirs(os.path.dirname(self.progress_file), exist_ok=True)
@@ -332,6 +359,8 @@ class BruteForce(plugins.Plugin):
                     self.processed_files = progress_data.get('processed_files', 0)
                     self.cracked_count = progress_data.get('cracked_count', 0)
                     self.processed_files_set = set(progress_data.get('processed_files_list', []))
+                    self.words_processed = progress_data.get('words_processed', 0)
+                    self.words_processed_abbr = self.abbreviate_number(self.words_processed)
                 logging.info("[bruteforce] Progress loaded.")
             except Exception as e:
                 logging.error(f"[bruteforce] Failed to load progress: {e}")
@@ -348,6 +377,8 @@ class BruteForce(plugins.Plugin):
                 logging.info("[bruteforce] Progress reset. Progress file deleted.")
                 self.processed_files = 0
                 self.cracked_count = 0
+                self.words_processed = 0
+                self.words_processed_abbr = ""
                 self.processed_files_set.clear()
                 self.on_ui_update(self.ui)  # Update the UI after reset
             else:
