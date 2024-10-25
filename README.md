@@ -3,7 +3,7 @@ The BruteForcer Plugin is a powerful tool designed for penetration testers, secu
 
 🔑 Key Features
 1. Real-Time Brute Force Progress
-The BruteForcer Plugin provides real-time progress updates directly from aircrack-ng. You’ll see detailed status updates that include the current progress percentage and the words per second (WPS) performance during brute force attacks.
+The BruteForcer Plugin provides real-time progress updates directly from aircrack-ng. You’ll see detailed status updates that include the current progress percentage during brute force attacks.
 The Progress field (PR) dynamically updates throughout the attack, ensuring you can monitor how far along the brute force process is, providing greater visibility into long-running wordlist attacks.
 2. Intuitive and Compact UI Integration
 The plugin adds small, neatly formatted status messages to the bottom of your Pwnagotchi’s screen. These messages display the current SSID (abbreviated for space), the wordlist being used, and the current WPS (Words per Second).
